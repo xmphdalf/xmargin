@@ -115,14 +115,33 @@ export interface SynopsisEntry {
 
 // ─── Examine types ──────────────────────────────────────────────────────────
 
-export type QuestionType = 'multiple-choice' | 'multiple-choice-multiple-correct' | 'true-false';
+export type QuestionType =
+	| 'multiple-choice'
+	| 'multiple-choice-multiple-correct'
+	| 'true-false'
+	| 'hotspot-yesno'
+	| 'hotspot-categorize';
 export type ExamineMode = 'read' | 'reflect' | 'examine';
+
+/**
+ * A chosen answer: an option key, or one entry per row for the hotspot types
+ * (`null` = that row was never answered, which reads differently from wrong).
+ */
+export type AnswerValue = string | (string | null)[];
 
 export interface QuestionOption {
 	key: string;
 	text: string;
 	isCorrect: boolean;
 	explanation: string;
+}
+
+/** One row of a hotspot question — a statement categorized into exactly one category. */
+export interface HotspotItem {
+	statement: string;
+	/** Must be a member of the question's `categories` */
+	correct: string;
+	explanation?: string;
 }
 
 export interface CaseStudy {
@@ -149,6 +168,12 @@ export interface Question {
 		correct?: 'true' | 'false';
 		/** true-false */
 		explanation?: string;
+		/** hotspot-yesno, hotspot-categorize — ordered, never shuffled */
+		categories?: string[];
+		/** hotspot-yesno, hotspot-categorize — ordered, never shuffled */
+		items?: HotspotItem[];
+		/** hotspot-yesno, hotspot-categorize — cosmetic column header, e.g. "Tool:" */
+		itemLabel?: string;
 	};
 	tags?: string[];
 }
@@ -178,7 +203,7 @@ export interface QuestionSet {
 
 export interface UserAnswer {
 	questionId: string;
-	selected: string | string[];
+	selected: AnswerValue;
 	isCorrect: boolean;
 	timestamp: number;
 }

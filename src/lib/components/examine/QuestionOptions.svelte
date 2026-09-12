@@ -1,16 +1,18 @@
 <script lang="ts">
-	import type { Question } from '$lib/types.js';
-	import { requiredSelectionCount, seededShuffle, questionSeed } from '$lib/examine.js';
+	import type { AnswerValue, Question } from '$lib/types.js';
+	import { isHotspot, requiredSelectionCount, seededShuffle, questionSeed } from '$lib/examine.js';
 	import { examineState } from '$lib/state/examine.svelte.js';
 	import OptionButton from './OptionButton.svelte';
+	import HotspotGrid from './HotspotGrid.svelte';
 
 	interface Props {
 		question: Question;
-		/** current answer: a key, or array of keys for multi-correct */
-		selected?: string | string[];
+		/** current answer: a key, array of keys for multi-correct, or one entry per hotspot row */
+		selected?: AnswerValue;
 		revealed?: boolean;
 		interactive?: boolean;
-		onSelect?: (key: string) => void;
+		/** `rowIndex` is supplied for hotspot questions only */
+		onSelect?: (key: string, rowIndex?: number) => void;
 	}
 
 	let { question, selected, revealed = false, interactive = false, onSelect }: Props = $props();
@@ -49,7 +51,15 @@
 </script>
 
 <div class="options">
-	{#if question.type === 'true-false'}
+	{#if isHotspot(question)}
+		<HotspotGrid
+			{question}
+			{selected}
+			{revealed}
+			{interactive}
+			onSelect={(category, rowIndex) => onSelect?.(category, rowIndex)}
+		/>
+	{:else if question.type === 'true-false'}
 		<OptionButton
 			optionKey="True"
 			text="True"

@@ -629,6 +629,45 @@ Or single-page app with state-driven view switching.
 - User selects True or False
 - Result: string ("true" or "false")
 
+#### 4. Hotspot (Yes/No) and 5. Hotspot (Categorize)
+
+The same widget with a different category list. The stem is followed by rows —
+each row is a statement assigned exactly one category, drawn from a list shared
+by every row in the question.
+
+```json
+{
+  "type": "hotspot-categorize",
+  "content": {
+    "stem": "You are classifying chunking strategies by corpus type...",
+    "itemLabel": "Chunking Strategy:",
+    "categories": ["Long Structured Documents", "Heterogeneous Short Records"],
+    "items": [
+      { "statement": "per-record chunking where each record is one chunk", "correct": "Heterogeneous Short Records" },
+      { "statement": "semantic chunking along clause boundaries", "correct": "Long Structured Documents", "explanation": "optional" }
+    ]
+  }
+}
+```
+
+- `categories` — ordered, 2+ unique labels, rendered in source order. For
+  `hotspot-yesno` it is always `["Yes", "No"]`; casing and order are normalized
+  on parse, but membership is strict.
+- `items` — ordered, rendered in source order. Rows and categories are **never
+  shuffled**, even when the session shuffles options for other types. Categories
+  may repeat freely across rows — this is not a matching question.
+- `items[].correct` — must be a member of `categories` (exact, case-sensitive).
+- `items[].explanation` — optional per-row note, shown under the row on reveal.
+- No `options` array and no `correctCount` on these types.
+- Result: `(string | null)[]` parallel to `items` — `null` means that row was
+  never answered, which review distinguishes from answered-incorrectly.
+- Grading: the question counts as correct **only when every row is correct** —
+  no partial credit. The row tally ("3 of 5 rows correct") is shown alongside,
+  as a count, never a score.
+- Rendering: two-column table on wide screens, stacked cards on narrow. A
+  segmented radio group for 2–3 categories, a dropdown for 4+. Nothing is
+  preselected.
+
 ### Case Studies (optional)
 
 For exam styles that attach groups of questions to a shared scenario (e.g. GCP
@@ -660,6 +699,11 @@ the stem in every mode (Read, Reflect, Examine, Results).
 - All questions must have sequential `number`
 - `correctCount` (for multiple-correct) must match count of options with `isCorrect: true`
 - At least one option must be `isCorrect: true`
+- Hotspot types need `categories` (2+ unique, non-empty) and `items` (1+ rows)
+- Every hotspot row needs a non-empty `statement` and a `correct` that is a
+  member of `categories`; errors name the question id and the 1-based row
+- `hotspot-yesno` categories must be exactly Yes and No (normalized, not rejected,
+  when the source uses other casing or order)
 - Case studies must have unique `id`, a `title`, and a `body`
 - A question's `caseStudyId`, when present, must reference a declared case study
 

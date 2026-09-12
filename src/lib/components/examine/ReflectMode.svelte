@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { Question } from '$lib/types.js';
+	import type { AnswerValue, Question } from '$lib/types.js';
 	import { examineState } from '$lib/state/examine.svelte.js';
-	import { requiredSelectionCount, toggleSelection } from '$lib/examine.js';
+	import { isHotspot, requiredSelectionCount, selectionCount, toggleSelection } from '$lib/examine.js';
 	import QuestionCard from './QuestionCard.svelte';
 	import QuestionOptions from './QuestionOptions.svelte';
 	import QuestionFrame from './QuestionFrame.svelte';
@@ -16,23 +16,29 @@
 	const index = $derived(examineState.session?.currentIndex ?? 0);
 	const question = $derived(questions[index]);
 
-	let selected = $state<string | string[] | undefined>(undefined);
+	let selected = $state<AnswerValue | undefined>(undefined);
 	let revealed = $state(false);
 	let revealedIndices = $state<Set<number>>(new Set());
 
 	const required = $derived(question ? requiredSelectionCount(question) : 1);
-	const selectionCount = $derived(Array.isArray(selected) ? selected.length : selected ? 1 : 0);
-	const canReveal = $derived(selectionCount === required);
+	const picked = $derived(question ? selectionCount(question, selected) : 0);
+	const canReveal = $derived(picked === required);
 
 	const revealLabel = $derived.by(() => {
 		if (canReveal) return 'Reveal answer';
-		if (selectionCount === 0) return required === 1 ? 'Select an answer' : `Select ${required}`;
-		return `Select ${required - selectionCount} more`;
+		const remaining = required - picked;
+		if (question && isHotspot(question)) {
+			return picked === 0
+				? `Answer all ${required} rows`
+				: `${remaining} row${remaining === 1 ? '' : 's'} left`;
+		}
+		if (picked === 0) return required === 1 ? 'Select an answer' : `Select ${required}`;
+		return `Select ${remaining} more`;
 	});
 
-	function handleSelect(key: string) {
+	function handleSelect(key: string, rowIndex?: number) {
 		if (!question || revealed) return;
-		selected = toggleSelection(question, selected, key);
+		selected = toggleSelection(question, selected, key, rowIndex);
 	}
 
 	function reveal() {

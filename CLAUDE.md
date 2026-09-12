@@ -229,13 +229,14 @@ This is the complete product vision. Build in order of priority, but design for 
 
 ### Examine (Quiz / Study Mode)
 - Third native module, alongside Markdown reading and git diff reading — entered via the same home-page mode dropdown
-- Input: paste or upload a JSON question set (single-choice, multi-correct, and true/false question types); a "view sample format" disclosure shows the schema
+- Input: paste or upload a JSON question set (single-choice, multi-correct, true/false, and two hotspot types — `hotspot-yesno` and `hotspot-categorize`, where each row of a statement table is assigned one category from a shared list); a "view sample format" disclosure shows the schema
 - Optional case studies: a set may declare `caseStudies` (`{ id, title, body }`) and any question may link one via `caseStudyId` — or none, staying standalone. Linked questions show a collapsed "Case study · {title}" disclosure above the stem in all modes
 - Pick a question range (all, quartile presets, or custom) and a mode, then **Begin**:
   - **Read** — browse every question with its answer and explanation, no interaction required
   - **Reflect** — one question at a time; select your answer(s) first, "Reveal answer" unlocks only once you've picked the required number of options, then decorates your picks against the correct answer
   - **Examine** — linear test, optional timer (off by default), flag-for-revisit, dot-row progress; "Review & submit" (reachable from any question) shows attempted count, the flagged list, and a final Submit before honest results
 - Results never show a percentage or grade — just "you answered N of M correctly," a per-question breakdown, and a "questions to revisit" list (incorrect ∪ flagged)
+- A hotspot question counts as correct only when every row is correct — no partial credit. The row tally ("3 of 5 rows correct") is surfaced alongside the pass/fail, and review distinguishes an unanswered row from a wrongly answered one
 - Session (range, mode, answers, flags, timer) persists to localStorage and resumes after a refresh, with a 90-day expiry — same pattern as reading position
 
 ### Export
@@ -566,13 +567,13 @@ Navigation: keyboard (arrow keys / space), pointer swipe (left/right), and tap-t
 
 ### Examine Module
 
-Data model and parsing/grading logic live in `src/lib/examine.ts` (`parseQuestionSet`, `isAnswerCorrect`, `toggleSelection`, `requiredSelectionCount`, `caseStudyFor`) — pure functions, no state, no side effects, mirroring how `diff.ts` is kept separate from `differ.svelte.ts`.
+Data model and parsing/grading logic live in `src/lib/examine.ts` (`parseQuestionSet`, `isAnswerCorrect`, `toggleSelection`, `requiredSelectionCount`, `selectionCount`, `caseStudyFor`, and the hotspot helpers `isHotspot`, `hotspotAnswer`, `hotspotRowTally`) — pure functions, no state, no side effects, mirroring how `diff.ts` is kept separate from `differ.svelte.ts`.
 
 State: `src/lib/state/examine.svelte.ts` (`examineState`) holds `rawSet`, `questionSet`, and `session` as module-level `$state`, exposed via getters + setter methods — same plain-object pattern as `reader.svelte.ts`. Reflect mode's in-progress selection is local component state, never written to `examineState` — only `Examine` mode's answers feed the session and Results.
 
 Route: `/examine` is client-only (`ssr = false`), entered only via the home page's `ExamineInput` (paste/upload JSON, same tab pattern as `MarkdownInput`/`DiffInput`). `+page.ts` mirrors `read/+page.ts` — tries to hydrate `questionSet` + `session` from storage, discarding a session whose `lastSavedAt` is older than 90 days, then redirects home if there's still nothing to show. The route itself switches between `setup` → `resume` (only if a session was actually restored mid-progress) → `session` (Read/Reflect/Examine, picked by `session.mode`) → `review` (Examine mode only, reachable any time via "Review & submit") → `results` (once `finishSession()` sets `session.finishedAt`) — all as local `$derived` stage logic in `+page.svelte`, the same single-route-many-stages approach `present/+page.svelte` uses for slides.
 
-Components live under `src/lib/components/examine/`. `QuestionCard` (header + optional collapsed `CaseStudyBlock` + stem) and `QuestionOptions` (renders the right option shape per question type, consolidating multi-correct explanations into one shared block rather than repeating them per option) are shared by `ReadMode`, `ReflectMode`, `ExamineMode`, and `ResultsView` — each mode only supplies the interaction props it needs. `QuestionFrame` gives Reflect/Examine's single-question views the bordered/padded card chrome with a 300ms entrance animation; Read/Results stay flat (list views).
+Components live under `src/lib/components/examine/`. `QuestionCard` (header + optional collapsed `CaseStudyBlock` + stem) and `QuestionOptions` (renders the right option shape per question type, consolidating multi-correct explanations into one shared block rather than repeating them per option) are shared by `ReadMode`, `ReflectMode`, `ExamineMode`, and `ResultsView` — each mode only supplies the interaction props it needs. `QuestionOptions` also dispatches the two hotspot types to a single shared `HotspotGrid` — one widget, not two renderers, with `hotspot-yesno` being the case where `categories` is `["Yes", "No"]`. It never shuffles rows or categories (source order is part of the question), renders a segmented radio group for 2–3 categories and a dropdown for 4+, and stacks each row as a card below 40rem. `QuestionFrame` gives Reflect/Examine's single-question views the bordered/padded card chrome with a 300ms entrance animation; Read/Results stay flat (list views).
 
 ---
 

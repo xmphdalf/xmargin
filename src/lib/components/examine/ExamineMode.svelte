@@ -33,10 +33,10 @@
 		examineState.goTo(i);
 	}
 
-	function handleSelect(key: string) {
+	function handleSelect(key: string, rowIndex?: number) {
 		if (!question) return;
 		const existing = session.answers[question.id]?.selected;
-		const next = toggleSelection(question, existing, key);
+		const next = toggleSelection(question, existing, key, rowIndex);
 		examineState.selectAnswer({
 			questionId: question.id,
 			selected: next,
