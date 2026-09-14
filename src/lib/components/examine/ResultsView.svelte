@@ -16,6 +16,12 @@
 
 	const correctCount = $derived(questions.filter((q) => session.answers[q.id]?.isCorrect).length);
 
+	/**
+	 * Stated separately so an unanswered question never reads as a wrong one —
+	 * both Reflect and Examine can be finished before every question is attempted.
+	 */
+	const unansweredCount = $derived(questions.filter((q) => !session.answers[q.id]).length);
+
 	const revisitNumbers = $derived.by(() => {
 		const nums = new Set<number>();
 		for (const q of questions) {
@@ -43,6 +49,12 @@
 	</p>
 
 	<p class="results-summary">You answered {correctCount} of {questions.length} correctly.</p>
+
+	{#if unansweredCount > 0}
+		<p class="results-note">
+			{unansweredCount} question{unansweredCount === 1 ? '' : 's'} left unanswered.
+		</p>
+	{/if}
 
 	{#each questions as question, i}
 		{#if i > 0}<div class="rule"></div>{/if}
@@ -94,6 +106,12 @@
 		font-size: 1.25rem;
 		color: var(--color-ink);
 		margin: 0;
+	}
+
+	.results-note {
+		font-size: 0.9375rem;
+		color: var(--color-ink-muted);
+		margin: -1rem 0 0;
 	}
 
 	.question-block {

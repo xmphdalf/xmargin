@@ -108,6 +108,13 @@ Q 02  Which three Bedrock Guardrail steps prevent...
 - Question appears, you think about your answer
 - You reveal the answer when ready (no timer)
 - Immediate feedback: correct/incorrect
+- Revealing commits the answer: the question locks, and navigating back shows
+  your pick again rather than forgetting it
+- "See results" hands off to the same Results screen Examine uses — honest
+  counts, per-question breakdown, questions to revisit. Enabled once at least
+  one question is answered; finishing early is fine, and Results states how many
+  were left unanswered so a blank never reads as a wrong answer
+- No review screen (that step exists for Examine's flag list; Reflect has no flagging)
 - Perfect for: Building confidence, pre-testing, spaced repetition
 
 **Experience:**
@@ -133,7 +140,7 @@ Amazon Bedrock is the fully managed service for
 accessing foundation models from providers like 
 Anthropic, AI21, and Cohere via API.
 
-        ← Previous    Next →
+   ← Previous   See results   Next →
 ```
 
 #### 3. **Examine Mode**

@@ -1,7 +1,13 @@
 <script lang="ts">
 	import type { AnswerValue, Question } from '$lib/types.js';
 	import { examineState } from '$lib/state/examine.svelte.js';
-	import { isHotspot, requiredSelectionCount, selectionCount, toggleSelection } from '$lib/examine.js';
+	import {
+		isAnswerCorrect,
+		isHotspot,
+		requiredSelectionCount,
+		selectionCount,
+		toggleSelection
+	} from '$lib/examine.js';
 	import QuestionCard from './QuestionCard.svelte';
 	import QuestionOptions from './QuestionOptions.svelte';
 	import QuestionFrame from './QuestionFrame.svelte';
@@ -13,12 +19,28 @@
 
 	let { questions }: Props = $props();
 
-	const index = $derived(examineState.session?.currentIndex ?? 0);
+	const session = $derived(examineState.session!);
+	const index = $derived(session.currentIndex);
 	const question = $derived(questions[index]);
 
-	let selected = $state<AnswerValue | undefined>(undefined);
-	let revealed = $state(false);
-	let revealedIndices = $state<Set<number>>(new Set());
+	/**
+	 * The in-progress pick, before reveal. Revealing commits it to the session,
+	 * which is what lets Reflect resume after a reload and produce results at the
+	 * end — so `pending` only ever holds an uncommitted selection.
+	 */
+	let pending = $state<AnswerValue | undefined>(undefined);
+
+	const committed = $derived(question ? session.answers[question.id] : undefined);
+	const revealed = $derived(!!committed);
+	const selected = $derived(committed?.selected ?? pending);
+
+	const answeredIndices = $derived.by(() => {
+		const set = new Set<number>();
+		questions.forEach((q, i) => {
+			if (session.answers[q.id]) set.add(i);
+		});
+		return set;
+	});
 
 	const required = $derived(question ? requiredSelectionCount(question) : 1);
 	const picked = $derived(question ? selectionCount(question, selected) : 0);
@@ -38,29 +60,35 @@
 
 	function handleSelect(key: string, rowIndex?: number) {
 		if (!question || revealed) return;
-		selected = toggleSelection(question, selected, key, rowIndex);
+		pending = toggleSelection(question, pending, key, rowIndex);
 	}
 
+	/** Revealing is the commit — the answer is graded and recorded, then locked. */
 	function reveal() {
-		revealed = true;
-		revealedIndices = new Set([...revealedIndices, index]);
+		if (!question || !canReveal || pending === undefined) return;
+		examineState.selectAnswer({
+			questionId: question.id,
+			selected: pending,
+			isCorrect: isAnswerCorrect(question, pending),
+			timestamp: Date.now()
+		});
+		pending = undefined;
 	}
 
 	function goTo(i: number) {
 		if (i < 0 || i >= questions.length) return;
-		selected = undefined;
-		revealed = false;
+		pending = undefined;
 		examineState.goTo(i);
 	}
 </script>
 
 {#if question}
 	<div class="reflect-mode">
-		<ProgressIndicator count={questions.length} currentIndex={index} answeredIndices={revealedIndices} />
+		<ProgressIndicator count={questions.length} currentIndex={index} {answeredIndices} />
 
 		{#key index}
 			<QuestionFrame>
-				<QuestionCard {question} showNumber={!examineState.session?.shuffleQuestions} />
+				<QuestionCard {question} showNumber={!session.shuffleQuestions} />
 				<QuestionOptions {question} {selected} {revealed} interactive={!revealed} onSelect={handleSelect} />
 				{#if !revealed}
 					<button class="nav-button primary reveal-btn" disabled={!canReveal} onclick={reveal}>
@@ -73,6 +101,13 @@
 		<div class="nav-row">
 			<button class="nav-button" disabled={index === 0} onclick={() => goTo(index - 1)}>
 				← Previous
+			</button>
+			<button
+				class="nav-button"
+				disabled={answeredIndices.size === 0}
+				onclick={() => examineState.finishSession()}
+			>
+				See results
 			</button>
 			<button class="nav-button" disabled={index === questions.length - 1} onclick={() => goTo(index + 1)}>
 				Next →
