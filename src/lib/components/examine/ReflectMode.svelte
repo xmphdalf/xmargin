@@ -60,7 +60,7 @@
 
 		{#key index}
 			<QuestionFrame>
-				<QuestionCard {question} />
+				<QuestionCard {question} showNumber={!examineState.session?.shuffleQuestions} />
 				<QuestionOptions {question} {selected} {revealed} interactive={!revealed} onSelect={handleSelect} />
 				{#if !revealed}
 					<button class="nav-button primary reveal-btn" disabled={!canReveal} onclick={reveal}>

@@ -45,7 +45,9 @@
 				{#each flaggedQuestions as question}
 					<li>
 						<button class="flagged-item" onclick={() => goToQuestion(question.id)}>
-							<span class="flagged-number">Q {String(question.number).padStart(2, '0')}</span>
+							{#if !session.shuffleQuestions}
+								<span class="flagged-number">Q {String(question.number).padStart(2, '0')}</span>
+							{/if}
 							<span class="flagged-stem">{question.content.stem}</span>
 						</button>
 					</li>

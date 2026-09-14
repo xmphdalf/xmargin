@@ -59,6 +59,7 @@
 			<QuestionFrame>
 				<QuestionCard
 					{question}
+					showNumber={!session.shuffleQuestions}
 					flagged={session.flagged.includes(question.id)}
 					onToggleFlag={() => examineState.toggleFlag(question.id)}
 				/>

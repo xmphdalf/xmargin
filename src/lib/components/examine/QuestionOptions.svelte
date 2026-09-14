@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AnswerValue, Question } from '$lib/types.js';
-	import { isHotspot, requiredSelectionCount, seededShuffle, questionSeed } from '$lib/examine.js';
+	import { displayOptions, isHotspot, requiredSelectionCount } from '$lib/examine.js';
 	import { examineState } from '$lib/state/examine.svelte.js';
 	import OptionButton from './OptionButton.svelte';
 	import HotspotGrid from './HotspotGrid.svelte';
@@ -29,22 +29,28 @@
 			selected.length >= requiredSelectionCount(question)
 	);
 
-	/** Display order — shuffled per-question when the session opts in; true-false has nothing to shuffle. */
-	const displayOptions = $derived.by(() => {
-		const options = question.content.options ?? [];
+	/**
+	 * Display order plus the label shown for each position — shuffled per-question
+	 * when the session opts in, but always labelled in ascending order so the
+	 * shuffle stays invisible. Labels are cosmetic; `option.key` drives everything.
+	 */
+	const displayed = $derived.by(() => {
 		const session = examineState.session;
-		if (question.type === 'true-false' || !session?.shuffleOptions) return options;
-		return seededShuffle(options, questionSeed(session.shuffleSeed, question.id));
+		return displayOptions(question, session?.shuffleOptions ?? false, session?.shuffleSeed ?? 0);
 	});
 
-	/** Group options by identical explanation text, so repeated explanations show once. */
+	/**
+	 * Group options by identical explanation text, so repeated explanations show
+	 * once. Built from the display list so the letters it names are the ones on
+	 * screen, in the order they appear.
+	 */
 	const explanationGroups = $derived.by(() => {
-		const groups: { keys: string[]; text: string }[] = [];
-		for (const option of question.content.options ?? []) {
+		const groups: { labels: string[]; text: string }[] = [];
+		for (const { option, label } of displayed) {
 			if (!option.explanation) continue;
 			const existing = groups.find((g) => g.text === option.explanation);
-			if (existing) existing.keys.push(option.key);
-			else groups.push({ keys: [option.key], text: option.explanation });
+			if (existing) existing.labels.push(label);
+			else groups.push({ labels: [label], text: option.explanation });
 		}
 		return groups;
 	});
@@ -82,9 +88,9 @@
 			<p class="shared-explanation">{question.content.explanation}</p>
 		{/if}
 	{:else}
-		{#each displayOptions as option}
+		{#each displayed as { option, label } (option.key)}
 			<OptionButton
-				optionKey={option.key}
+				optionKey={label}
 				text={option.text}
 				explanation={question.type === 'multiple-choice' ? option.explanation : undefined}
 				selected={isSelected(option.key)}
@@ -98,7 +104,7 @@
 		{#if revealed && question.type === 'multiple-choice-multiple-correct'}
 			<div class="shared-explanation">
 				{#each explanationGroups as group}
-					<p><strong>{group.keys.join(', ')}.</strong> {group.text}</p>
+					<p><strong>{group.labels.join(', ')}.</strong> {group.text}</p>
 				{/each}
 			</div>
 		{/if}

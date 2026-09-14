@@ -4,7 +4,14 @@
  * Steps: JSON.parse → structural validation → return QuestionSet.
  * Grading is pure and stateless — no side effects, no storage access.
  */
-import type { AnswerValue, CaseStudy, HotspotItem, Question, QuestionSet } from './types.js';
+import type {
+	AnswerValue,
+	CaseStudy,
+	HotspotItem,
+	Question,
+	QuestionOption,
+	QuestionSet
+} from './types.js';
 import { hashDoc } from './utils/storage.js';
 
 function fail(message: string): never {
@@ -121,6 +128,11 @@ export function parseQuestionSet(raw: string): QuestionSet {
 			const options = q.content.options;
 			if (!options || options.length === 0) {
 				fail(`Question "${q.id}" needs at least one option.`);
+			}
+			// Duplicate keys would break grading (correctKeys is a Set) and make the
+			// display-label mapping ambiguous.
+			if (new Set(options.map((o) => o.key)).size !== options.length) {
+				fail(`Question "${q.id}" has duplicate option keys.`);
 			}
 			const correctCount = options.filter((o) => o.isCorrect).length;
 			if (correctCount === 0) fail(`Question "${q.id}" has no option marked isCorrect.`);
@@ -262,6 +274,23 @@ export function seededShuffle<T>(items: T[], seed: number): T[] {
 /** Derives a per-question seed so each question's options shuffle independently, not identically. */
 export function questionSeed(sessionSeed: number, questionId: string): number {
 	return sessionSeed ^ parseInt(hashDoc(questionId), 36);
+}
+
+/**
+ * Options in display order, each paired with the label to show for its position.
+ *
+ * Labels stay in the author's own sequence (A, B, C… or 1, 2, 3…) so the list
+ * always reads in ascending order and the shuffle stays invisible. The label is
+ * cosmetic — grading and persistence always use `option.key`.
+ */
+export function displayOptions(
+	question: Question,
+	shuffle: boolean,
+	seed: number
+): { option: QuestionOption; label: string }[] {
+	const options = question.content.options ?? [];
+	const order = shuffle ? seededShuffle(options, questionSeed(seed, question.id)) : options;
+	return order.map((option, i) => ({ option, label: options[i].key }));
 }
 
 /** Static, hand-written example covering every question type — display-only, never parsed. */

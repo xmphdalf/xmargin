@@ -6,11 +6,17 @@
 
 	interface Props {
 		question: Question;
+		/**
+		 * The number is the source set's, so it doubles as the cross-reference on
+		 * the results screen. Session views hide it while questions are shuffled —
+		 * otherwise "Q 07 → Q 02" advertises the shuffled order.
+		 */
+		showNumber?: boolean;
 		flagged?: boolean;
 		onToggleFlag?: () => void;
 	}
 
-	let { question, flagged = false, onToggleFlag }: Props = $props();
+	let { question, showNumber = true, flagged = false, onToggleFlag }: Props = $props();
 
 	const caseStudy = $derived(
 		examineState.questionSet ? caseStudyFor(examineState.questionSet, question) : undefined
@@ -18,19 +24,23 @@
 </script>
 
 <div class="question-card">
-	<div class="question-header">
-		<span class="question-number">Q {String(question.number).padStart(2, '0')}</span>
-		{#if onToggleFlag}
-			<button
-				class="flag-btn"
-				class:active={flagged}
-				aria-pressed={flagged}
-				onclick={onToggleFlag}
-			>
-				{flagged ? 'Flagged for revisit' : 'Flag for revisit'}
-			</button>
-		{/if}
-	</div>
+	{#if showNumber || onToggleFlag}
+		<div class="question-header">
+			{#if showNumber}
+				<span class="question-number">Q {String(question.number).padStart(2, '0')}</span>
+			{/if}
+			{#if onToggleFlag}
+				<button
+					class="flag-btn"
+					class:active={flagged}
+					aria-pressed={flagged}
+					onclick={onToggleFlag}
+				>
+					{flagged ? 'Flagged for revisit' : 'Flag for revisit'}
+				</button>
+			{/if}
+		</div>
+	{/if}
 	{#if caseStudy}
 		<CaseStudyBlock {caseStudy} />
 	{/if}
@@ -59,6 +69,8 @@
 	}
 
 	.flag-btn {
+		/* Holds the button right even when the number is hidden. */
+		margin-left: auto;
 		font-family: var(--font-sans);
 		font-size: 0.75rem;
 		color: var(--color-ink-muted);
