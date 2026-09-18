@@ -10,7 +10,8 @@ import type {
 	HotspotItem,
 	Question,
 	QuestionOption,
-	QuestionSet
+	QuestionSet,
+	UserAnswer
 } from './types.js';
 import { hashDoc } from './utils/storage.js';
 
@@ -151,6 +152,18 @@ export function parseQuestionSet(raw: string): QuestionSet {
 	if (!sequential) fail('Question numbers must be sequential, starting at 1.');
 
 	return set as QuestionSet;
+}
+
+/**
+ * Which results bucket an answer falls into. Flagged is deliberately not one of
+ * these — it's orthogonal, so a flagged question is also correct, incorrect, or
+ * unanswered.
+ */
+export function answerBucket(
+	answer: UserAnswer | undefined
+): 'correct' | 'incorrect' | 'unanswered' {
+	if (!answer) return 'unanswered';
+	return answer.isCorrect ? 'correct' : 'incorrect';
 }
 
 /** The case study a question belongs to, or undefined for standalone questions. */

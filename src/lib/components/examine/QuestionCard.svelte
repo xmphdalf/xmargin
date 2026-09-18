@@ -12,11 +12,17 @@
 		 * otherwise "Q 07 → Q 02" advertises the shuffled order.
 		 */
 		showNumber?: boolean;
+		/** Results only — the verdict for this question, stated as text, not colour alone. */
+		status?: 'correct' | 'incorrect' | 'unanswered';
 		flagged?: boolean;
 		onToggleFlag?: () => void;
 	}
 
-	let { question, showNumber = true, flagged = false, onToggleFlag }: Props = $props();
+	let { question, showNumber = true, status, flagged = false, onToggleFlag }: Props = $props();
+
+	const statusLabel = $derived(
+		status === 'correct' ? 'Correct' : status === 'incorrect' ? 'Incorrect' : 'Not answered'
+	);
 
 	const caseStudy = $derived(
 		examineState.questionSet ? caseStudyFor(examineState.questionSet, question) : undefined
@@ -24,10 +30,18 @@
 </script>
 
 <div class="question-card">
-	{#if showNumber || onToggleFlag}
+	{#if showNumber || status || onToggleFlag}
 		<div class="question-header">
 			{#if showNumber}
 				<span class="question-number">Q {String(question.number).padStart(2, '0')}</span>
+			{/if}
+			{#if status}
+				<span class="question-status" class:correct={status === 'correct'} class:incorrect={status === 'incorrect'}>
+					{statusLabel}
+					{#if status !== 'unanswered'}
+						<span aria-hidden="true">{status === 'correct' ? '✓' : '✕'}</span>
+					{/if}
+				</span>
 			{/if}
 			{#if onToggleFlag}
 				<button
@@ -66,6 +80,25 @@
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--color-ink-muted);
+	}
+
+	.question-status {
+		/* Holds right even when the number is hidden. */
+		margin-left: auto;
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.3rem;
+		font-family: var(--font-sans);
+		font-size: 0.75rem;
+		color: var(--color-ink-muted);
+	}
+
+	.question-status.correct {
+		color: var(--color-add);
+	}
+
+	.question-status.incorrect {
+		color: var(--color-del);
 	}
 
 	.flag-btn {

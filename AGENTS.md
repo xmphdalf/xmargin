@@ -236,9 +236,10 @@ This is the complete product vision. Build in order of priority, but design for 
   - **Reflect** — one question at a time; select your answer(s) first, "Reveal answer" unlocks only once you've picked the required number of options, then decorates your picks against the correct answer and locks the question. Revealing commits the answer to the session, so navigating back shows it again and "See results" produces the same Results screen Examine does
   - **Examine** — linear test, optional timer (off by default), flag-for-revisit, dot-row progress; "Review & submit" (reachable from any question) shows attempted count, the flagged list, and a final Submit before honest results
 - Results never show a percentage or grade — just "you answered N of M correctly," a per-question breakdown, and a "questions to revisit" list (incorrect ∪ flagged)
+- A row of count chips under the headline doubles as the filter: All / Correct / Incorrect, plus Unanswered and Flagged only when non-zero. Clicking one narrows the list below, so reading the breakdown and acting on it are the same gesture. Chips are neutral at rest and take their status colour only when active; a zero-count chip stays visible but is disabled. Flagged is orthogonal — a flagged question is also correct, incorrect, or unanswered
 - A hotspot question counts as correct only when every row is correct — no partial credit. The row tally ("3 of 5 rows correct") is surfaced alongside the pass/fail, and review distinguishes an unanswered row from a wrongly answered one
 - Session (range, mode, answers, flags, timer) persists to localStorage and resumes after a refresh, with a 90-day expiry — same pattern as reading position
-- Results state an unanswered count separately from the correct count, so a question left blank never reads as a wrong one — both Reflect and Examine can be finished before every question is attempted
+- The Unanswered chip states blanks separately from wrong answers, so a question left untouched never reads as an incorrect one — both Reflect and Examine can be finished before every question is attempted
 
 ### Export
 - Export rendered document as a self-contained static HTML file (inline CSS, inline fonts, no external deps)

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Question } from '$lib/types.js';
 	import { examineState } from '$lib/state/examine.svelte.js';
+	import { answerBucket } from '$lib/examine.js';
 	import QuestionCard from './QuestionCard.svelte';
 	import QuestionOptions from './QuestionOptions.svelte';
 
@@ -14,13 +15,51 @@
 
 	const session = $derived(examineState.session!);
 
-	const correctCount = $derived(questions.filter((q) => session.answers[q.id]?.isCorrect).length);
+	type Filter = 'all' | 'correct' | 'incorrect' | 'unanswered' | 'flagged';
 
-	/**
-	 * Stated separately so an unanswered question never reads as a wrong one —
-	 * both Reflect and Examine can be finished before every question is attempted.
-	 */
-	const unansweredCount = $derived(questions.filter((q) => !session.answers[q.id]).length);
+	/** Transient view state — which slice of the results is on screen. Never persisted. */
+	let filter = $state<Filter>('all');
+
+	const bucketOf = (q: Question) => answerBucket(session.answers[q.id]);
+	/** Flagged is orthogonal to the buckets, so it gets its own predicate. */
+	const isFlagged = (q: Question) => session.flagged.includes(q.id);
+
+	const counts = $derived.by(() => ({
+		all: questions.length,
+		correct: questions.filter((q) => bucketOf(q) === 'correct').length,
+		incorrect: questions.filter((q) => bucketOf(q) === 'incorrect').length,
+		unanswered: questions.filter((q) => bucketOf(q) === 'unanswered').length,
+		// session.flagged can hold ids outside the selected range — count only what's shown.
+		flagged: questions.filter(isFlagged).length
+	}));
+
+	const correctCount = $derived(counts.correct);
+
+	/** Zero-count buckets are omitted rather than shown empty — the row stays short. */
+	const chips = $derived.by(() => {
+		const all: { id: Filter; label: string }[] = [
+			{ id: 'all', label: 'All' },
+			{ id: 'correct', label: 'Correct' },
+			{ id: 'incorrect', label: 'Incorrect' },
+			{ id: 'unanswered', label: 'Unanswered' },
+			{ id: 'flagged', label: 'Flagged' }
+		];
+		return all.filter(
+			(c) => c.id === 'all' || c.id === 'correct' || c.id === 'incorrect' || counts[c.id] > 0
+		);
+	});
+
+	const shown = $derived.by(() => {
+		if (filter === 'all') return questions;
+		if (filter === 'flagged') return questions.filter(isFlagged);
+		return questions.filter((q) => bucketOf(q) === filter);
+	});
+
+	const filterAnnouncement = $derived(
+		filter === 'all'
+			? `Showing all ${shown.length} question${shown.length === 1 ? '' : 's'}`
+			: `Showing ${shown.length} ${filter} question${shown.length === 1 ? '' : 's'}`
+	);
 
 	const revisitNumbers = $derived.by(() => {
 		const nums = new Set<number>();
@@ -50,19 +89,35 @@
 
 	<p class="results-summary">You answered {correctCount} of {questions.length} correctly.</p>
 
-	{#if unansweredCount > 0}
-		<p class="results-note">
-			{unansweredCount} question{unansweredCount === 1 ? '' : 's'} left unanswered.
-		</p>
-	{/if}
+	<div class="chip-row" role="group" aria-label="Filter results">
+		{#each chips as chip (chip.id)}
+			<button
+				class="chip"
+				class:active={filter === chip.id}
+				class:correct={chip.id === 'correct'}
+				class:incorrect={chip.id === 'incorrect'}
+				aria-pressed={filter === chip.id}
+				disabled={counts[chip.id] === 0}
+				onclick={() => (filter = chip.id)}
+			>
+				{chip.label} {counts[chip.id]}
+			</button>
+		{/each}
+	</div>
 
-	{#each questions as question, i}
-		{#if i > 0}<div class="rule"></div>{/if}
-		<div class="question-block">
-			<QuestionCard {question} />
-			<QuestionOptions {question} selected={session.answers[question.id]?.selected} revealed />
+	<p class="sr-only" aria-live="polite">{filterAnnouncement}</p>
+
+	{#key filter}
+		<div class="question-list">
+			{#each shown as question, i (question.id)}
+				{#if i > 0}<div class="rule"></div>{/if}
+				<div class="question-block">
+					<QuestionCard {question} status={bucketOf(question)} />
+					<QuestionOptions {question} selected={session.answers[question.id]?.selected} revealed />
+				</div>
+			{/each}
 		</div>
-	{/each}
+	{/key}
 
 	{#if revisitNumbers.length > 0}
 		<div class="rule"></div>
@@ -108,10 +163,74 @@
 		margin: 0;
 	}
 
-	.results-note {
-		font-size: 0.9375rem;
+	/* Same chip idiom as the setup screen: neutral at rest, colour only when active. */
+	.chip-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.chip {
+		padding: 0.5rem 0.875rem;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		background: transparent;
+		font-family: var(--font-sans);
+		font-size: 0.8125rem;
 		color: var(--color-ink-muted);
-		margin: -1rem 0 0;
+		cursor: pointer;
+		transition: border-color 200ms ease, color 200ms ease, background-color 200ms ease;
+	}
+
+	.chip:hover:not(:disabled) {
+		color: var(--color-ink);
+		border-color: var(--color-accent);
+	}
+
+	/* An empty bucket stays visible — the count is the point — but leads nowhere. */
+	.chip:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.chip.active {
+		color: var(--color-accent);
+		border-color: var(--color-accent);
+		background-color: var(--color-surface-alt);
+	}
+
+	/* The active chip echoes the ✓/✕ colours already used on the options below. */
+	.chip.active.correct {
+		color: var(--color-add);
+		border-color: var(--color-add);
+		background-color: var(--color-add-tint);
+	}
+
+	.chip.active.incorrect {
+		color: var(--color-del);
+		border-color: var(--color-del);
+		background-color: var(--color-del-tint);
+	}
+
+	.chip:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+
+	.question-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		animation: list-in 300ms ease;
+	}
+
+	@keyframes list-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.question-block {
