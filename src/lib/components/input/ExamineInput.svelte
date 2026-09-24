@@ -80,8 +80,13 @@
 
 	<details class="sample-disclosure">
 		<summary>View sample format</summary>
-		<div class="sample-header">
-			<button type="button" class="sample-copy-btn" onclick={copySample}>
+		<div class="sample-code-wrap">
+			<button
+				type="button"
+				class="sample-copy-btn"
+				onclick={copySample}
+				aria-label="Copy sample JSON"
+			>
 				{#if sampleCopied}
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<polyline points="20 6 9 17 4 12" />
@@ -95,8 +100,8 @@
 					Copy
 				{/if}
 			</button>
+			<pre class="sample-code"><code>{SAMPLE_QUESTION_SET_JSON}</code></pre>
 		</div>
-		<pre class="sample-code"><code>{SAMPLE_QUESTION_SET_JSON}</code></pre>
 	</details>
 </div>
 
@@ -165,20 +170,22 @@
 		outline-offset: 2px;
 	}
 
-	.sample-header {
-		display: flex;
-		justify-content: flex-end;
+	.sample-code-wrap {
+		position: relative;
 		margin-top: 0.75rem;
 	}
 
 	.sample-copy-btn {
+		position: absolute;
+		top: 0.625rem;
+		right: 0.625rem;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.375rem;
 		padding: 0.25rem 0.5rem;
 		font-size: 0.75rem;
 		color: var(--color-ink-muted);
-		background: transparent;
+		background-color: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		cursor: pointer;
@@ -196,7 +203,7 @@
 	}
 
 	.sample-code {
-		margin: 0.5rem 0 0;
+		margin: 0;
 		padding: 1rem;
 		background-color: var(--color-code-bg);
 		border-radius: 8px;
