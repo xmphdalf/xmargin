@@ -1,0 +1,36 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  id-token: write
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          prompt: "/code-review:code-review low --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          claude_args: |
+            --max-turns 20
+            --allowedTools "mcp__github_inline_comment__create_inline_comment"
+            --append-system-prompt "Follow this repo's .claude/rules/voice.md rules for review output: lead with what matters, group findings by topic not severity, no severity labels, terse fixes stated as direct assertions. Write like a person, not a report - short and to the point, nothing a reviewer would skim past. Use common sense: only flag things that are actually wrong or bad for the project - real bugs, security issues, broken behavior. Skip style nitpicks and anything that doesn't change whether the PR is safe to merge. If the PR is fine, say so in one line instead of inventing findings."
