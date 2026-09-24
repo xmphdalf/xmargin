@@ -13,6 +13,14 @@
 
 	let activeTab = $state<Tab>('paste');
 	let loading = $state(false);
+	let sampleCopied = $state(false);
+
+	async function copySample() {
+		const { copyToClipboard } = await import('$lib/export.js');
+		await copyToClipboard(SAMPLE_QUESTION_SET_JSON);
+		sampleCopied = true;
+		setTimeout(() => (sampleCopied = false), 1500);
+	}
 
 	async function handleSubmit(raw: string) {
 		loading = true;
@@ -72,6 +80,22 @@
 
 	<details class="sample-disclosure">
 		<summary>View sample format</summary>
+		<div class="sample-header">
+			<button type="button" class="sample-copy-btn" onclick={copySample}>
+				{#if sampleCopied}
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<polyline points="20 6 9 17 4 12" />
+					</svg>
+					Copied
+				{:else}
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<rect x="9" y="9" width="13" height="13" rx="2" />
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+					</svg>
+					Copy
+				{/if}
+			</button>
+		</div>
 		<pre class="sample-code"><code>{SAMPLE_QUESTION_SET_JSON}</code></pre>
 	</details>
 </div>
@@ -141,8 +165,38 @@
 		outline-offset: 2px;
 	}
 
+	.sample-header {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 0.75rem;
+	}
+
+	.sample-copy-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.75rem;
+		color: var(--color-ink-muted);
+		background: transparent;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: color 200ms ease, border-color 200ms ease, background-color 200ms ease;
+	}
+
+	.sample-copy-btn:hover {
+		color: var(--color-ink);
+		background-color: var(--color-surface-alt);
+	}
+
+	.sample-copy-btn:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+
 	.sample-code {
-		margin: 0.75rem 0 0;
+		margin: 0.5rem 0 0;
 		padding: 1rem;
 		background-color: var(--color-code-bg);
 		border-radius: 8px;
