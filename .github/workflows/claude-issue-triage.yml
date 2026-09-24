@@ -1,0 +1,47 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+concurrency:
+  group: claude-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            A new issue was just opened on this repository. Read the issue and the
+            relevant parts of the codebase, then post exactly one comment on this
+            issue containing:
+            - a one-line restatement of the problem
+            - the likely root cause or design gap, if this is a bug
+            - a concrete implementation plan naming the exact files you would change
+
+            End the comment with this exact line, on its own:
+            "To approve this plan, add the `claude` label to this issue and I will implement it and open a pull request."
+
+            Do not modify, create, or delete any files. Do not open a pull request.
+            Do not add or remove labels yourself. Post the comment with:
+            gh issue comment ${{ github.event.issue.number }} --body-file -
+          claude_args: |
+            --max-turns 15
+            --allowedTools "Read,Grep,Glob,Bash(gh issue comment:*)"
+            --append-system-prompt "You are triaging a newly opened GitHub issue for the xmargin repo, non-interactively. Your only allowed output is one issue comment posted via the gh CLI. You have no write access to files or git - do not attempt to use it. Keep the comment concise and follow CLAUDE.md's product context when judging whether a request fits xMargin's scope."
+        env:
+          GH_TOKEN: ${{ github.token }}
