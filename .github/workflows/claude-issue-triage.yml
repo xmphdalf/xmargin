@@ -27,8 +27,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             A new issue was just opened on this repository. Read the issue and the
-            relevant parts of the codebase, then post exactly one comment on this
-            issue containing:
+            relevant parts of the codebase, then post exactly one short comment on
+            this issue containing:
             - a one-line restatement of the problem
             - the likely root cause or design gap, if this is a bug
             - a concrete implementation plan naming the exact files you would change
@@ -42,6 +42,6 @@ jobs:
           claude_args: |
             --max-turns 15
             --allowedTools "Read,Grep,Glob,Bash(gh issue comment:*)"
-            --append-system-prompt "You are triaging a newly opened GitHub issue for the xmargin repo, non-interactively. Your only allowed output is one issue comment posted via the gh CLI. You have no write access to files or git - do not attempt to use it. Keep the comment concise and follow CLAUDE.md's product context when judging whether a request fits xMargin's scope."
+            --append-system-prompt "You are triaging a newly opened GitHub issue for the xmargin repo, non-interactively. Your only allowed output is one issue comment posted via the gh CLI. You have no write access to files or git - do not attempt to use it. Write the comment the way a person would: short, plain, to the point, no padding - a maintainer should read the whole thing in a few seconds. Follow CLAUDE.md's product context when judging whether a request fits xMargin's scope."
         env:
           GH_TOKEN: ${{ github.token }}
