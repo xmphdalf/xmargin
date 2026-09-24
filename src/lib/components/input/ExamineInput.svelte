@@ -13,6 +13,16 @@
 
 	let activeTab = $state<Tab>('paste');
 	let loading = $state(false);
+	let copied = $state(false);
+	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	async function handleCopySample() {
+		const { copyToClipboard } = await import('$lib/export.js');
+		await copyToClipboard(SAMPLE_QUESTION_SET_JSON);
+		copied = true;
+		clearTimeout(copyTimeout);
+		copyTimeout = setTimeout(() => (copied = false), 1500);
+	}
 
 	async function handleSubmit(raw: string) {
 		loading = true;
@@ -72,6 +82,11 @@
 
 	<details class="sample-disclosure">
 		<summary>View sample format</summary>
+		<div class="sample-actions">
+			<button type="button" class="copy-btn" onclick={handleCopySample}>
+				{copied ? 'Copied' : 'Copy'}
+			</button>
+		</div>
 		<pre class="sample-code"><code>{SAMPLE_QUESTION_SET_JSON}</code></pre>
 	</details>
 </div>
@@ -141,8 +156,35 @@
 		outline-offset: 2px;
 	}
 
+	.sample-actions {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 0.75rem;
+	}
+
+	.copy-btn {
+		font-size: 0.75rem;
+		color: var(--color-ink-muted);
+		background: transparent;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		padding: 0.25rem 0.625rem;
+		cursor: pointer;
+		transition: color 200ms ease, border-color 200ms ease;
+	}
+
+	.copy-btn:hover {
+		color: var(--color-ink);
+		border-color: var(--color-ink-muted);
+	}
+
+	.copy-btn:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+
 	.sample-code {
-		margin: 0.75rem 0 0;
+		margin: 0.5rem 0 0;
 		padding: 1rem;
 		background-color: var(--color-code-bg);
 		border-radius: 8px;
