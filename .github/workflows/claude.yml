@@ -7,8 +7,6 @@ on:
     types: [created]
   pull_request_review:
     types: [submitted]
-  issues:
-    types: [opened, labeled, assigned]
 
 permissions:
   contents: write
@@ -23,11 +21,11 @@ concurrency:
 
 jobs:
   claude:
+    # Only the repo owner can summon Claude - nothing runs on new issues or other people's comments.
     if: |
-      github.event_name == 'issues' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+      (github.event_name == 'issue_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && github.event.review.author_association == 'OWNER' && contains(github.event.review.body, '@claude'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -35,15 +33,21 @@ jobs:
         with:
           fetch-depth: 1
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          label_trigger: "claude"
           track_progress: "true"
           use_sticky_comment: "true"
           claude_args: |
-            --max-turns 40
-            --allowedTools "Bash(gh issue close:*),Bash(gh issue edit:*)"
-            --append-system-prompt "You are running non-interactively in GitHub Actions for the xmargin repo. If you were invoked because a maintainer applied the 'claude' label or assigned the issue to you, that is their approval: implement the fix on a new branch and open a pull request that closes the issue - do not stop at a comment. If you were invoked by an @claude mention, do only what was asked in that mention - including closing the issue yourself with gh issue close if you confirm it's already resolved. Never push directly to main. Before opening or pushing further commits to a pull request, run npm run check and resolve any errors it reports. Keep changes scoped to the issue or request - no unrelated refactors. Apply KISS, DRY, and YAGNI. Write every PR title, PR description, commit message, code comment, and issue reply the way a person would: short, plain, to the point - never padded or repeating itself. Never add a 'Generated with Claude' footer or a 'Co-Authored-By: Claude' line to any commit or PR - leave commits and PR descriptions with no AI attribution at all. Follow CLAUDE.md and every file under .claude/rules/."
+            --max-turns 80
+            --allowedTools "Bash(gh issue view:*),Bash(gh issue close:*),Bash(gh issue edit:*),Bash(npm run check),Bash(git status),Bash(git diff:*),Bash(git log:*)"
+            --append-system-prompt "You are running non-interactively in GitHub Actions for the xmargin repo. You are only ever invoked by the repo owner's @claude comment. Do what that comment asks: if it asks for a fix or implementation, implement it on a new branch and open a pull request that closes the issue - do not stop at a comment; if it asks for a review or plan, reply with that only; if you confirm the issue is already resolved, close it with gh issue close. Never push directly to main. Before opening or pushing further commits to a pull request, run npm run check and resolve any errors it reports. Keep changes scoped to the issue or request - no unrelated refactors. Apply KISS, DRY, and YAGNI. Write every PR title, PR description, commit message, code comment, and issue reply the way a person would: short, plain, to the point - never padded or repeating itself. Never add a 'Generated with Claude' footer or a 'Co-Authored-By: Claude' line to any commit or PR - leave commits and PR descriptions with no AI attribution at all. Follow CLAUDE.md and every file under .claude/rules/."
         env:
           GH_TOKEN: ${{ github.token }}
