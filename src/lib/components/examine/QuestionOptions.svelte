@@ -4,6 +4,7 @@
 	import { examineState } from '$lib/state/examine.svelte.js';
 	import OptionButton from './OptionButton.svelte';
 	import HotspotGrid from './HotspotGrid.svelte';
+	import Markdown from './Markdown.svelte';
 
 	interface Props {
 		question: Question;
@@ -85,7 +86,7 @@
 			onSelect={() => onSelect?.('false')}
 		/>
 		{#if revealed && question.content.explanation}
-			<p class="shared-explanation">{question.content.explanation}</p>
+			<div class="shared-explanation"><Markdown text={question.content.explanation} /></div>
 		{/if}
 	{:else}
 		{#each displayed as { option, label } (option.key)}
@@ -104,7 +105,10 @@
 		{#if revealed && question.type === 'multiple-choice-multiple-correct'}
 			<div class="shared-explanation">
 				{#each explanationGroups as group}
-					<p><strong>{group.labels.join(', ')}.</strong> {group.text}</p>
+					<div class="group">
+						<strong>{group.labels.join(', ')}.</strong>
+						<Markdown text={group.text} />
+					</div>
 				{/each}
 			</div>
 		{/if}
@@ -128,11 +132,7 @@
 		background-color: var(--color-surface-alt);
 	}
 
-	.shared-explanation p {
-		margin: 0;
-	}
-
-	.shared-explanation p + p {
+	.group + .group {
 		margin-top: 0.5rem;
 	}
 

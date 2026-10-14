@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Markdown from './Markdown.svelte';
+
 	interface Props {
 		optionKey: string;
 		text: string;
@@ -43,12 +45,12 @@
 			aria-pressed={selected}
 		>
 			<span class="option-key">{optionKey}</span>
-			<span class="option-text">{text}</span>
+			<span class="option-text"><Markdown {text} inline /></span>
 		</button>
 	{:else}
 		<div class="option" class:selected class:right class:wrong>
 			<span class="option-key">{optionKey}</span>
-			<span class="option-text">{text}</span>
+			<span class="option-text"><Markdown {text} inline /></span>
 			{#if revealed}
 				<span class="option-mark" aria-hidden="true">{right ? '✓' : wrong ? '✕' : ''}</span>
 				<span class="sr-only">
@@ -58,7 +60,7 @@
 		</div>
 	{/if}
 	{#if revealed && explanation}
-		<p class="explanation">{explanation}</p>
+		<div class="explanation"><Markdown text={explanation} /></div>
 	{/if}
 </div>
 
@@ -134,6 +136,7 @@
 
 	.option-text {
 		flex: 1;
+		min-width: 0;
 	}
 
 	.option-mark {
