@@ -3,6 +3,7 @@
 	import { examineState } from '$lib/state/examine.svelte.js';
 	import { caseStudyFor } from '$lib/examine.js';
 	import CaseStudyBlock from './CaseStudyBlock.svelte';
+	import Markdown from './Markdown.svelte';
 
 	interface Props {
 		question: Question;
@@ -58,7 +59,7 @@
 	{#if caseStudy}
 		<CaseStudyBlock {caseStudy} />
 	{/if}
-	<p class="question-stem">{question.content.stem}</p>
+	<div class="question-stem"><Markdown text={question.content.stem} /></div>
 </div>
 
 <style>

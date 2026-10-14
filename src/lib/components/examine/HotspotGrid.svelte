@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AnswerValue, Question } from '$lib/types.js';
 	import { hotspotAnswer, hotspotRowTally, selectionCount } from '$lib/examine.js';
+	import Markdown from './Markdown.svelte';
 
 	interface Props {
 		question: Question;
@@ -45,7 +46,7 @@
 				class:row-right={revealed && attempted && right}
 				class:row-wrong={revealed && attempted && !right}
 			>
-				<p class="statement" id="{question.id}-row-{i}">{item.statement}</p>
+				<div class="statement" id="{question.id}-row-{i}"><Markdown text={item.statement} /></div>
 
 				<div class="selector">
 					{#if interactive && useDropdown}
@@ -106,7 +107,7 @@
 				{/if}
 
 				{#if revealed && item.explanation}
-					<p class="row-explanation">{item.explanation}</p>
+					<div class="row-explanation"><Markdown text={item.explanation} /></div>
 				{/if}
 			</li>
 		{/each}

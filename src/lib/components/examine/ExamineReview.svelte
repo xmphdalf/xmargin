@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Question } from '$lib/types.js';
 	import { examineState } from '$lib/state/examine.svelte.js';
+	import { markdownToPlainText } from '$lib/caseStudyMarkdown.js';
 	import TimerDisplay from './TimerDisplay.svelte';
 
 	interface Props {
@@ -48,7 +49,7 @@
 							{#if !session.shuffleQuestions}
 								<span class="flagged-number">Q {String(question.number).padStart(2, '0')}</span>
 							{/if}
-							<span class="flagged-stem">{question.content.stem}</span>
+							<span class="flagged-stem">{markdownToPlainText(question.content.stem)}</span>
 						</button>
 					</li>
 				{/each}
